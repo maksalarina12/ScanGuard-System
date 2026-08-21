@@ -1,6 +1,6 @@
 # 01 — DEFINISI MASALAH
 
-**QRIS Guard · HackNusa 2026 · Track 1: Secure Digital Payments & Fintech**
+**ScanGuard System · HackNusa 2026 · Track 1: Secure Digital Payments & Fintech**
 
 > Dokumen ini dibaca duluan. Kalau ada yang bingung "sebenarnya kita bikin apa
 > dan buat siapa", jawabannya di sini. Mega Prompt dan Business Bible menurunkan

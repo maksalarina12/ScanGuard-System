@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { useQrisGuard } from "../store";
+import { useScanGuard } from "../store";
 import { parseQris } from "../engine/parser";
 import { reasonText } from "../copy/reasons.id";
 
@@ -31,7 +31,7 @@ export default function ResultScreen() {
     reportQr,
     nameAnswer,
     goTo,
-  } = useQrisGuard(
+  } = useScanGuard(
     useShallow((s) => ({
       finalVerdict: s.finalVerdict,
       currentPayload: s.currentPayload,

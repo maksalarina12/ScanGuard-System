@@ -1,5 +1,5 @@
 import { useShallow } from "zustand/react/shallow";
-import { useQrisGuard } from "../store";
+import { useScanGuard } from "../store";
 import { parseQris } from "../engine/parser";
 import { findNearestPlace, dominantNmid } from "../engine/places";
 
@@ -30,7 +30,7 @@ const ALL_RULE_IDS = [
 ];
 
 export default function BuktiScreen() {
-  const { currentPayload, finalVerdict, pass1Verdict, currentCoords, places } = useQrisGuard(
+  const { currentPayload, finalVerdict, pass1Verdict, currentCoords, places } = useScanGuard(
     useShallow((s) => ({
       currentPayload: s.currentPayload,
       finalVerdict: s.finalVerdict,

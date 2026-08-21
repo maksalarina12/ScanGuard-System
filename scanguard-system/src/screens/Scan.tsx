@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useQrisGuard } from "../store";
+import { useScanGuard } from "../store";
 import { FIXTURES, DEMO_COORDS_BY_FIXTURE } from "../demo/seed";
 
 const EXPECTED_BADGE: Record<string, string> = {
@@ -10,7 +10,7 @@ const EXPECTED_BADGE: Record<string, string> = {
 };
 
 export default function ScanScreen() {
-  const scan = useQrisGuard((s) => s.scan);
+  const scan = useScanGuard((s) => s.scan);
   const [cameraOn, setCameraOn] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [pasteValue, setPasteValue] = useState("");
@@ -56,7 +56,7 @@ export default function ScanScreen() {
   return (
     <div className="p-5 flex flex-col gap-5">
       <header>
-        <h1 className="text-xl font-semibold tracking-tight">QRIS Guard</h1>
+        <h1 className="text-xl font-semibold tracking-tight">ScanGuard System</h1>
         <p className="text-sm text-white/50 mt-0.5">Periksa dulu, baru bayar.</p>
       </header>
 

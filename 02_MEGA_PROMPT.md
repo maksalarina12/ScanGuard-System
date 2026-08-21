@@ -12,7 +12,7 @@ serangan Tipe C, urutan pengerjaan dirombak.
 
 ## BLOCK 0 — ROLE, PRODUCT FRAME, GROUND RULES
 
-You are a senior full-stack engineer. Build **QRIS Guard**, a mobile-first web app
+You are a senior full-stack engineer. Build **ScanGuard System**, a mobile-first web app
 that inspects an Indonesian QRIS payment code **before** the user pays.
 
 **Product frame — this affects your architecture decisions.** The real product is
@@ -436,7 +436,7 @@ already covers all three attack types.
 ## BLOCK 11 — REPO OUTPUT
 
 ```
-qris-guard/
+scanguard-system/
   src/
     engine/{index.ts,crc.ts,parser.ts,rules.ts,places.ts,names.ts,scoring.ts}
     data/{known_merchants.json,reported_nmids.json,city_centroids.json,mcc_table.json}

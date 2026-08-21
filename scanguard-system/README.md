@@ -1,9 +1,9 @@
-# QRIS Guard
+# ScanGuard System
 
 **HackNusa 2026 · Track 1: Secure Digital Payments & Fintech**
 
 Bayar QRIS itu buta. Kamu scan stiker, tekan bayar, dan tidak pernah tahu
-uangnya masuk ke mana. QRIS Guard mengisi tiga detik yang selama ini kosong
+uangnya masuk ke mana. ScanGuard System mengisi tiga detik yang selama ini kosong
 antara **scan** dan **bayar** — memeriksa isi kode, mencocokkan dengan riwayat
 tempat, dan untuk transaksi berisiko, menanyakan nama toko ke pembeli
 **sebelum** menampilkan siapa penerima sebenarnya.
@@ -47,7 +47,7 @@ yang tahu tujuan sebenarnya adalah pembeli, jadi sistem bertanya kepadanya.
 
 ## Tiga jenis serangan yang ditangani
 
-QRIS Guard sengaja memisahkan tiga masalah yang selama ini digabung jadi
+ScanGuard System sengaja memisahkan tiga masalah yang selama ini digabung jadi
 satu label "QR palsu":
 
 | | Tipe A — diedit asal | Tipe B — dipalsukan total | Tipe C — asli, tempat salah |
@@ -176,7 +176,7 @@ menyalin layar — itu bukan verifikasi.
 ### Instal & jalankan
 
 ```bash
-cd qris-guard
+cd scanguard-system
 npm install
 npm run dev
 ```

@@ -18,7 +18,7 @@ export interface RiwayatEntry {
   score: number;
 }
 
-interface QrisGuardState {
+interface ScanGuardState {
   screen: Screen;
   currentPayload?: string;
   currentCoords?: Context["coords"];
@@ -43,7 +43,7 @@ interface QrisGuardState {
   resetToScan: () => void;
 }
 
-function buildContext(state: QrisGuardState, nameAnswer?: string): Context {
+function buildContext(state: ScanGuardState, nameAnswer?: string): Context {
   return {
     coords: state.currentCoords,
     places: state.places,
@@ -53,14 +53,14 @@ function buildContext(state: QrisGuardState, nameAnswer?: string): Context {
   };
 }
 
-function runExplain(verdict: Verdict, set: (fn: (s: QrisGuardState) => Partial<QrisGuardState>) => void) {
+function runExplain(verdict: Verdict, set: (fn: (s: ScanGuardState) => Partial<ScanGuardState>) => void) {
   set(() => ({ explainLoading: true }));
   explainVerdict(verdict).then((text) => {
     set(() => ({ explainText: text, explainLoading: false }));
   });
 }
 
-export const useQrisGuard = create<QrisGuardState>((set, get) => ({
+export const useScanGuard = create<ScanGuardState>((set, get) => ({
   screen: "scan",
   currentPayload: undefined,
   currentCoords: undefined,
@@ -81,7 +81,7 @@ export const useQrisGuard = create<QrisGuardState>((set, get) => ({
     const coords = coordsOverride ?? get().currentCoords;
     set({ currentPayload: payload, currentCoords: coords, nameAnswer: undefined, explainText: undefined });
 
-    const ctx = buildContext({ ...get(), currentCoords: coords } as QrisGuardState);
+    const ctx = buildContext({ ...get(), currentCoords: coords } as ScanGuardState);
     const verdict = evaluate(payload, ctx);
 
     if (verdict.needsNameChallenge) {
@@ -170,8 +170,8 @@ export const useQrisGuard = create<QrisGuardState>((set, get) => ({
 function recordRiwayat(
   payload: string,
   verdict: Verdict,
-  set: (fn: (s: QrisGuardState) => Partial<QrisGuardState>) => void,
-  get: () => QrisGuardState,
+  set: (fn: (s: ScanGuardState) => Partial<ScanGuardState>) => void,
+  get: () => ScanGuardState,
 ) {
   const parsed = parseQris(payload);
   const entry: RiwayatEntry = {

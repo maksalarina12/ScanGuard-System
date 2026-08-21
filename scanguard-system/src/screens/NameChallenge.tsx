@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { useQrisGuard } from "../store";
+import { useScanGuard } from "../store";
 
 export default function NameChallengeScreen() {
-  const { submitNameAnswer, skipNameChallenge } = useQrisGuard(
+  const { submitNameAnswer, skipNameChallenge } = useScanGuard(
     useShallow((s) => ({
       submitNameAnswer: s.submitNameAnswer,
       skipNameChallenge: s.skipNameChallenge,

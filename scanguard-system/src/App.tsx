@@ -1,5 +1,5 @@
 import { useShallow } from "zustand/react/shallow";
-import { useQrisGuard } from "./store";
+import { useScanGuard } from "./store";
 import ScanScreen from "./screens/Scan";
 import NameChallengeScreen from "./screens/NameChallenge";
 import ResultScreen from "./screens/Result";
@@ -7,7 +7,7 @@ import BuktiScreen from "./screens/Bukti";
 import RiwayatScreen from "./screens/Riwayat";
 
 function ScreenSwitch() {
-  const screen = useQrisGuard((s) => s.screen);
+  const screen = useScanGuard((s) => s.screen);
   switch (screen) {
     case "scan":
       return <ScanScreen />;
@@ -23,7 +23,7 @@ function ScreenSwitch() {
 }
 
 function BottomNav() {
-  const { screen, goTo, currentPayload } = useQrisGuard(
+  const { screen, goTo, currentPayload } = useScanGuard(
     useShallow((s) => ({
       screen: s.screen,
       goTo: s.goTo,

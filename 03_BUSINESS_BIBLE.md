@@ -1,6 +1,6 @@
 # 03 — BUSINESS BIBLE (v2)
 
-**QRIS Guard · HackNusa 2026 · Track 1: Secure Digital Payments & Fintech**
+**ScanGuard System · HackNusa 2026 · Track 1: Secure Digital Payments & Fintech**
 Submisi awal: **21 Agustus 2026** · Hackathon onsite: 3 Oktober 2026
 
 > Baca `01_DEFINISI_MASALAH.md` dulu. Dokumen ini menurunkan dari sana.
@@ -12,11 +12,11 @@ Submisi awal: **21 Agustus 2026** · Hackathon onsite: 3 Oktober 2026
 ## 1. Pitch tiga tingkat
 
 **Satu kalimat:**
-Bayar QRIS itu buta — QRIS Guard mengisi tiga detik antara scan dan bayar.
+Bayar QRIS itu buta — ScanGuard System mengisi tiga detik antara scan dan bayar.
 
 **Tiga kalimat:**
 Saat membayar di warung, pembeli tidak punya cara memastikan uangnya masuk ke
-warung yang sedang dia datangi. QRIS Guard memeriksa isi QR, membandingkannya
+warung yang sedang dia datangi. ScanGuard System memeriksa isi QR, membandingkannya
 dengan riwayat tempat, dan untuk transaksi berisiko menanyakan nama toko ke
 pembeli sebelum menampilkan jawabannya. Bentuk akhirnya bukan aplikasi terpisah,
 tapi lapisan verifikasi yang dipasang di dalam dompet digital yang sudah ada.

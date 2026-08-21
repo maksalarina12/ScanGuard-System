@@ -1,5 +1,5 @@
 """
-QRIS Guard - Test Fixture Generator & Validator
+ScanGuard System - Test Fixture Generator & Validator
 ================================================
 Membuat QR uji coba (versi BENAR dan versi TIMPA) untuk menguji detektor kamu.
 
