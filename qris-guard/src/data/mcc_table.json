@@ -1,0 +1,8 @@
+{
+  "5812": { "label": "Makanan & Minuman", "medianAmount": 25000 },
+  "5411": { "label": "Toko Kelontong", "medianAmount": 40000 },
+  "5912": { "label": "Apotek", "medianAmount": 60000 },
+  "5813": { "label": "Kafe & Kedai Kopi", "medianAmount": 20000 },
+  "7523": { "label": "Parkir", "medianAmount": 5000 },
+  "5399": { "label": "Ritel Umum", "medianAmount": 50000 }
+}

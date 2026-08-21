@@ -1,0 +1,10 @@
+{
+  "BANDUNG": { "lat": -6.9175, "lng": 107.6191 },
+  "SURABAYA": { "lat": -7.2575, "lng": 112.7521 },
+  "JAKARTA": { "lat": -6.2088, "lng": 106.8456 },
+  "YOGYAKARTA": { "lat": -7.7956, "lng": 110.3695 },
+  "MEDAN": { "lat": 3.5952, "lng": 98.6722 },
+  "MAKASSAR": { "lat": -5.1477, "lng": 119.4327 },
+  "SEMARANG": { "lat": -6.9932, "lng": 110.4203 },
+  "DENPASAR": { "lat": -8.6705, "lng": 115.2126 }
+}

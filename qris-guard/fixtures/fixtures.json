@@ -1,0 +1,165 @@
+[
+  {
+    "id": "OK-01",
+    "label": "Warung kopi, QR statis, sehat",
+    "expected": "SAFE",
+    "payload": "00020101021126660014ID.CO.QRIS.WWW011893600091122334455602151122334455667780303UMI51470014ID.CO.QRIS.WWW02189360009112233445560303UMI5204581253033605802ID5916WARUNG KOPI NUSA6007BANDUNG61054025762070703A0163045798",
+    "crc_valid": true,
+    "parsed_tags": [
+      "00",
+      "01",
+      "26",
+      "51",
+      "52",
+      "53",
+      "58",
+      "59",
+      "60",
+      "61",
+      "62",
+      "63"
+    ]
+  },
+  {
+    "id": "OK-02",
+    "label": "Toko kelontong, QR dinamis Rp25.000, sehat",
+    "expected": "SAFE",
+    "payload": "00020101021226660014ID.CO.QRIS.WWW011893600091122334455702151122334455667790303UMI51470014ID.CO.QRIS.WWW02189360009112233445570303UMI520454115303360540825000.005802ID5916TOKO BERKAH JAYA6007BANDUNG61054025762070703A0163049A99",
+    "crc_valid": true,
+    "parsed_tags": [
+      "00",
+      "01",
+      "26",
+      "51",
+      "52",
+      "53",
+      "54",
+      "58",
+      "59",
+      "60",
+      "61",
+      "62",
+      "63"
+    ]
+  },
+  {
+    "id": "OK-03",
+    "label": "Merchant besar, sudah pernah dibayar sebelumnya",
+    "expected": "SAFE",
+    "payload": "00020101021126660014ID.CO.QRIS.WWW011893600091122334455802151122334455667800303UMI51470014ID.CO.QRIS.WWW02189360009112233445580303UMI5204591253033605802ID5917APOTEK SEHAT NUSA6007BANDUNG61054025762070703A016304A56C",
+    "crc_valid": true,
+    "parsed_tags": [
+      "00",
+      "01",
+      "26",
+      "51",
+      "52",
+      "53",
+      "58",
+      "59",
+      "60",
+      "61",
+      "62",
+      "63"
+    ]
+  },
+  {
+    "id": "BAD-01",
+    "label": "Nama merchant diedit, CRC tidak diperbarui",
+    "expected": "DANGER",
+    "reason": "crc_mismatch",
+    "payload": "00020101021126660014ID.CO.QRIS.WWW011893600091122334455602151122334455667780303UMI51470014ID.CO.QRIS.WWW02189360009112233445560303UMI5204581253033605802ID5916WARUNG K0PI NUSA6007BANDUNG61054025762070703A0163045798",
+    "crc_valid": false,
+    "parsed_tags": [
+      "00",
+      "01",
+      "26",
+      "51",
+      "52",
+      "53",
+      "58",
+      "59",
+      "60",
+      "61",
+      "62",
+      "63"
+    ]
+  },
+  {
+    "id": "BAD-02",
+    "label": "Payload terpotong / rusak",
+    "expected": "DANGER",
+    "reason": "malformed",
+    "payload": "00020101021126660014ID.CO.QRIS.WWW011893600091122334455602151122334455667780303UMI51470014ID.CO.QRIS.WWW02189360009112233445560303UMI5204581253033605802ID5916WARUNG KOPI NUSA6007BANDU",
+    "crc_valid": false,
+    "parsed_tags": null,
+    "parse_error": "value tag 60 lebih pendek dari length"
+  },
+  {
+    "id": "BAD-03",
+    "label": "QR ditimpa penuh, NMID asing, CRC valid",
+    "expected": "DANGER",
+    "reason": "unknown_nmid + name_reuse",
+    "payload": "00020101021126660014ID.CO.QRIS.WWW011893600099988776655402159988776655443320303UMI51470014ID.CO.QRIS.WWW02189360009998877665540303UMI5204581253033605802ID5916WARUNG KOPI NUSA6007BANDUNG61054025762070703A016304B643",
+    "crc_valid": true,
+    "parsed_tags": [
+      "00",
+      "01",
+      "26",
+      "51",
+      "52",
+      "53",
+      "58",
+      "59",
+      "60",
+      "61",
+      "62",
+      "63"
+    ]
+  },
+  {
+    "id": "BAD-04",
+    "label": "Nama mirip merchant terkenal + kota beda jauh",
+    "expected": "WARNING",
+    "reason": "lookalike_name + geo_mismatch",
+    "payload": "00020101021126660014ID.CO.QRIS.WWW011893600095544332211002155544332211009980303UMI51470014ID.CO.QRIS.WWW02189360009554433221100303UMI5204581253033605802ID5917WARUNG KOPI NUSAA6008SURABAYA61054025762070703A0163042A1A",
+    "crc_valid": true,
+    "parsed_tags": [
+      "00",
+      "01",
+      "26",
+      "51",
+      "52",
+      "53",
+      "58",
+      "59",
+      "60",
+      "61",
+      "62",
+      "63"
+    ]
+  },
+  {
+    "id": "OVERLAY-01",
+    "label": "QR asli milik warung sebelah, ditempel di warung Anam",
+    "expected": "CHALLENGE",
+    "reason": "butuh tantangan nama - tidak terdeteksi dari isi QR",
+    "intended_merchant": "AYAM GEPREK ANAM",
+    "payload": "00020101021126660014ID.CO.QRIS.WWW011893600092233445566702152233445566778890303UMI51470014ID.CO.QRIS.WWW02189360009223344556670303UMI5204581253033605802ID5917AYAM GEPREK ZIKRI6007BANDUNG61054025762070703A016304DE4B",
+    "crc_valid": true,
+    "parsed_tags": [
+      "00",
+      "01",
+      "26",
+      "51",
+      "52",
+      "53",
+      "58",
+      "59",
+      "60",
+      "61",
+      "62",
+      "63"
+    ]
+  }
+]
