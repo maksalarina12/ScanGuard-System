@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useScanGuard } from "../store";
-import { parseQris } from "../engine/parser";
+import { tryParseQris, merchantLocation, MERCHANT_CITY_MAX } from "../engine/parser";
 import { reasonText } from "../copy/reasons.id";
 
 const LEVEL_STYLES = {
@@ -52,11 +52,15 @@ export default function ResultScreen() {
   const holdStart = useRef<number>(0);
 
   useEffect(() => {
-    setCountdown(COUNTDOWN_S);
     if (finalVerdict?.level !== "WARNING") return;
     const iv = window.setInterval(() => setCountdown((c) => Math.max(0, c - 1)), 1000);
     return () => window.clearInterval(iv);
   }, [finalVerdict]);
+
+  // Never leave a hold timer running after the screen goes away.
+  useEffect(() => () => {
+    if (holdTimer.current) window.clearInterval(holdTimer.current);
+  }, []);
 
   if (!finalVerdict || !currentPayload) {
     return (
@@ -64,14 +68,22 @@ export default function ResultScreen() {
     );
   }
 
-  const parsed = parseQris(currentPayload);
+  // BAD-02-style payloads fail the TLV walk; the verdict is still DANGER
+  // (L1_MALFORMED) and must render instead of crashing the screen.
+  const parsed = tryParseQris(currentPayload);
   const style = LEVEL_STYLES[finalVerdict.level];
-  const merchantName = parsed.tags["59"] ?? "(tidak diketahui)";
-  const city = parsed.tags["60"] ?? "";
-  const amount = formatIdr(parsed.tags["54"]);
+  const merchantName = parsed ? (parsed.tags["59"] ?? "(tidak diketahui)") : "Kode QR rusak";
+  const loc = parsed ? merchantLocation(parsed) : undefined;
+  const locationLine = loc
+    ? [loc.storeLabel, loc.city, loc.cityAlt && loc.cityAlt !== loc.city ? loc.cityAlt : undefined, loc.postalCode]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
+  const amount = formatIdr(parsed?.tags["54"]);
   const nameMismatch = finalVerdict.hits.find((h) => h.ruleId === "L3_NAME_MISMATCH");
 
   function startHold() {
+    if (holdTimer.current) return; // touchstart + emulated mousedown: one timer only
     holdStart.current = Date.now();
     holdTimer.current = window.setInterval(() => {
       const elapsed = Date.now() - holdStart.current;
@@ -93,7 +105,13 @@ export default function ResultScreen() {
       <div className={`rounded-2xl ${style.bg} ring-1 ${style.ring} p-5`}>
         <span className={`text-xs font-bold tracking-wide ${style.text}`}>{style.label}</span>
         <h1 className="text-2xl font-semibold mt-1">{merchantName}</h1>
-        {city && <p className="text-sm text-white/50">{city}</p>}
+        {locationLine && <p className="text-sm text-white/50">{locationLine}</p>}
+        {loc?.cityMayBeTruncated && (
+          <p className="text-[11px] text-white/35 mt-0.5">
+            Kolom kota di QRIS maksimal {MERCHANT_CITY_MAX} karakter — alamat merchant ini terpotong sejak QR-nya
+            dibuat. Alamat lengkap tidak tersimpan di kode.
+          </p>
+        )}
         {amount && <p className="text-3xl font-bold mt-3 tracking-tight">{amount}</p>}
 
         {nameMismatch && (
@@ -173,20 +191,25 @@ export default function ResultScreen() {
             >
               Laporkan QR ini
             </button>
-            <button
-              onMouseDown={startHold}
-              onMouseUp={stopHold}
-              onMouseLeave={stopHold}
-              onTouchStart={startHold}
-              onTouchEnd={stopHold}
-              className="relative w-full overflow-hidden rounded-xl bg-white/5 py-3 text-xs text-white/40"
-            >
-              <span
-                className="absolute inset-y-0 left-0 bg-danger/20 transition-[width]"
-                style={{ width: `${holding}%` }}
-              />
-              <span className="relative">Tahan 3 detik: Lanjut, saya yakin</span>
-            </button>
+            {/* A code that cannot be parsed has no payee to pay — no override. */}
+            {parsed && (
+              <button
+                onMouseDown={startHold}
+                onMouseUp={stopHold}
+                onMouseLeave={stopHold}
+                onTouchStart={startHold}
+                onTouchEnd={stopHold}
+                onTouchCancel={stopHold}
+                onContextMenu={(e) => e.preventDefault()}
+                className="relative w-full overflow-hidden rounded-xl bg-white/5 py-3 text-xs text-white/40"
+              >
+                <span
+                  className="absolute inset-y-0 left-0 bg-danger/20 transition-[width]"
+                  style={{ width: `${holding}%` }}
+                />
+                <span className="relative">Tahan 3 detik: Lanjut, saya yakin</span>
+              </button>
+            )}
           </>
         )}
       </div>

@@ -32,7 +32,10 @@ export default function RiwayatScreen() {
                   {r.city} · {new Date(r.ts).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
                 </p>
               </div>
-              <span className="text-[10px] font-mono text-white/40">skor {r.score}</span>
+              <div className="text-right">
+                <p className="text-[10px] font-mono text-white/40">skor {r.score}</p>
+                {r.outcome && <p className="text-[10px] text-white/50">{r.outcome}</p>}
+              </div>
             </li>
           ))}
         </ul>

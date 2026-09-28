@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { evaluate } from "./engine";
-import { parseQris } from "./engine/parser";
+import { tryParseQris, type ParsedQris } from "./engine/parser";
 import { upsertPlace } from "./engine/places";
 import type { Context, PaidMerchant, PlaceMemory, Verdict } from "./engine/types";
 import reportedNmidsSeed from "./data/reported_nmids.json";
@@ -9,6 +9,8 @@ import { explainVerdict } from "./llm/explain";
 
 export type Screen = "scan" | "challenge" | "result" | "bukti" | "riwayat";
 
+export type RiwayatOutcome = "dibayar" | "dibatalkan" | "dilaporkan";
+
 export interface RiwayatEntry {
   id: string;
   ts: number;
@@ -16,6 +18,7 @@ export interface RiwayatEntry {
   city: string;
   level: Verdict["level"];
   score: number;
+  outcome?: RiwayatOutcome;
 }
 
 interface ScanGuardState {
@@ -27,10 +30,13 @@ interface ScanGuardState {
   nameAnswer?: string;
   explainText?: string;
   explainLoading: boolean;
+  currentRiwayatId?: string;
+  lastOutcome?: RiwayatOutcome;
 
   places: PlaceMemory[];
   history: PaidMerchant[];
   reportedNmids: Set<string>;
+  recentScans: { nmid: string; ts: number }[];
   riwayat: RiwayatEntry[];
 
   goTo: (screen: Screen) => void;
@@ -43,145 +49,182 @@ interface ScanGuardState {
   resetToScan: () => void;
 }
 
-function buildContext(state: ScanGuardState, nameAnswer?: string): Context {
+/** True while the buyer still owes an answer to the name challenge. The
+ * payee name (tag 59) must not be rendered anywhere in this state. */
+export function isChallengePending(s: Pick<ScanGuardState, "pass1Verdict" | "finalVerdict">): boolean {
+  return Boolean(s.pass1Verdict && !s.finalVerdict);
+}
+
+function nmidOf(parsed: ParsedQris | null): string {
+  return parsed?.merchantAccount?.nmid ?? parsed?.domestic?.nmid ?? "";
+}
+
+function buildContext(state: ScanGuardState, extra: Partial<Context> = {}): Context {
   return {
     coords: state.currentCoords,
     places: state.places,
     history: state.history,
     reportedNmids: state.reportedNmids,
-    nameAnswer,
+    recentNmids: state.recentScans,
+    now: Date.now(),
+    ...extra,
   };
 }
 
-function runExplain(verdict: Verdict, set: (fn: (s: ScanGuardState) => Partial<ScanGuardState>) => void) {
-  set(() => ({ explainLoading: true }));
-  explainVerdict(verdict).then((text) => {
-    set(() => ({ explainText: text, explainLoading: false }));
-  });
+// Dev-only fire-rate counter (BLOCK 6: "log the fire rate in dev mode so you can tune it").
+const fireRate = { scans: 0, challenges: 0 };
+function logFireRate(challenged: boolean) {
+  fireRate.scans++;
+  if (challenged) fireRate.challenges++;
+  if (import.meta.env.DEV && import.meta.env.MODE !== "test") {
+    const pct = ((fireRate.challenges / fireRate.scans) * 100).toFixed(0);
+    console.info(`[ScanGuard] name challenge fire rate: ${fireRate.challenges}/${fireRate.scans} (${pct}%) — target < 10%`);
+  }
 }
 
-export const useScanGuard = create<ScanGuardState>((set, get) => ({
-  screen: "scan",
-  currentPayload: undefined,
-  currentCoords: undefined,
-  pass1Verdict: undefined,
-  finalVerdict: undefined,
-  nameAnswer: undefined,
-  explainText: undefined,
-  explainLoading: false,
-
-  places: buildInitialPlaces(),
-  history: buildInitialHistory(),
-  reportedNmids: new Set<string>(reportedNmidsSeed as string[]),
-  riwayat: [],
-
-  goTo: (screen) => set({ screen }),
-
-  scan: (payload, coordsOverride) => {
-    const coords = coordsOverride ?? get().currentCoords;
-    set({ currentPayload: payload, currentCoords: coords, nameAnswer: undefined, explainText: undefined });
-
-    const ctx = buildContext({ ...get(), currentCoords: coords } as ScanGuardState);
-    const verdict = evaluate(payload, ctx);
-
-    if (verdict.needsNameChallenge) {
-      set({ pass1Verdict: verdict, screen: "challenge" });
-      return;
-    }
-    set({ finalVerdict: verdict, screen: "result" });
-    recordRiwayat(payload, verdict, set, get);
-    runExplain(verdict, set);
-  },
-
-  submitNameAnswer: (name) => {
-    const payload = get().currentPayload;
-    if (!payload) return;
-    const ctx = buildContext(get(), name);
-    const verdict = evaluate(payload, ctx);
-    set({ nameAnswer: name, finalVerdict: verdict, screen: "result" });
-    recordRiwayat(payload, verdict, set, get);
-    runExplain(verdict, set);
-  },
-
-  skipNameChallenge: () => {
-    // "Saya tidak tahu / tidak ada papan nama": proceeds with an explicit warning,
-    // never with a silent SAFE — the buyer opted out of the one check that matters.
-    const payload = get().currentPayload;
-    if (!payload) return;
-    const pass1 = get().pass1Verdict;
-    const hits = [
-      ...(pass1?.hits ?? []),
-      {
-        ruleId: "L3_NAME_INCONCLUSIVE" as const,
-        layer: 3 as const,
-        severity: "warning" as const,
-        weight: 20,
-        reasonId: "L3_NAME_INCONCLUSIVE",
-        evidence: { skipped: true },
-      },
-    ];
-    const score = Math.min(100, hits.reduce((s, h) => s + h.weight, 0));
-    const level = hits.some((h) => h.severity === "danger") ? "DANGER" : score >= 30 ? "WARNING" : "SAFE";
-    const verdict: Verdict = {
-      level,
-      score,
-      hits,
-      needsNameChallenge: false,
-      explain: "Kamu memilih tidak menjawab. Kami tidak bisa memastikan ini toko yang kamu maksud — hati-hati sebelum membayar.",
+export const useScanGuard = create<ScanGuardState>((set, get) => {
+  function finalize(payload: string, verdict: Verdict, nameAnswer?: string) {
+    const parsed = tryParseQris(payload);
+    const entry: RiwayatEntry = {
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      ts: Date.now(),
+      merchantName: parsed?.tags["59"] ?? "(kode rusak)",
+      city: parsed?.tags["60"] ?? "",
+      level: verdict.level,
+      score: verdict.score,
     };
-    set({ finalVerdict: verdict, screen: "result" });
-    recordRiwayat(payload, verdict, set, get);
-  },
+    set((s) => ({
+      nameAnswer,
+      finalVerdict: verdict,
+      screen: "result",
+      explainLoading: true,
+      currentRiwayatId: entry.id,
+      riwayat: [entry, ...s.riwayat],
+    }));
+    explainVerdict(verdict).then((text) => {
+      // A slower LLM reply for an earlier scan must not overwrite this one.
+      if (get().finalVerdict === verdict) set({ explainText: text, explainLoading: false });
+    });
+  }
 
-  confirmPay: () => {
-    const state = get();
-    const payload = state.currentPayload;
-    if (!payload || !state.finalVerdict) return;
-    const parsed = parseQris(payload);
-    const nmid = parsed.merchantAccount?.nmid ?? parsed.domestic?.nmid ?? "";
-    const amountStr = parsed.tags["54"];
-    const amount = amountStr ? Number(amountStr) : 0;
-    const now = Date.now();
+  function closeWith(outcome: RiwayatOutcome, patch: Partial<ScanGuardState> = {}) {
+    const id = get().currentRiwayatId;
+    set((s) => ({
+      ...patch,
+      screen: "scan",
+      currentPayload: undefined,
+      pass1Verdict: undefined,
+      finalVerdict: undefined,
+      currentRiwayatId: undefined,
+      lastOutcome: outcome,
+      riwayat: s.riwayat.map((r) => (r.id === id ? { ...r, outcome } : r)),
+    }));
+  }
 
-    const nextHistory: PaidMerchant[] = [...state.history, { nmid, amount, ts: now }];
-    let nextPlaces = state.places;
-    if (state.currentCoords) {
-      nextPlaces = upsertPlace(state.places, state.currentCoords, nmid, parsed.tags["59"] ?? "", now);
-    }
-    set({ history: nextHistory, places: nextPlaces, screen: "scan", currentPayload: undefined });
-  },
+  return {
+    screen: "scan",
+    currentPayload: undefined,
+    currentCoords: undefined,
+    pass1Verdict: undefined,
+    finalVerdict: undefined,
+    nameAnswer: undefined,
+    explainText: undefined,
+    explainLoading: false,
 
-  cancelPay: () => set({ screen: "scan", currentPayload: undefined, finalVerdict: undefined }),
+    places: buildInitialPlaces(),
+    history: buildInitialHistory(),
+    reportedNmids: new Set<string>(reportedNmidsSeed as string[]),
+    recentScans: [],
+    riwayat: [],
 
-  reportQr: () => {
-    const state = get();
-    const payload = state.currentPayload;
-    if (!payload) return;
-    const parsed = parseQris(payload);
-    const nmid = parsed.merchantAccount?.nmid ?? parsed.domestic?.nmid ?? "";
-    const nextReported = new Set(state.reportedNmids);
-    nextReported.add(nmid);
-    set({ reportedNmids: nextReported, screen: "scan", currentPayload: undefined });
-  },
+    goTo: (screen) => {
+      // Bukti renders tag 59 — never while the name challenge is unanswered.
+      if (screen === "bukti" && isChallengePending(get())) return;
+      set({ screen });
+    },
 
-  resetToScan: () => set({ screen: "scan", currentPayload: undefined, finalVerdict: undefined, pass1Verdict: undefined }),
-}));
+    // `coords` is the location for THIS scan only. Never fall back to an
+    // earlier scan's coordinates: that would evaluate the payload against
+    // a place the buyer is not standing at.
+    scan: (payload, coords) => {
+      set({
+        currentPayload: payload,
+        currentCoords: coords,
+        pass1Verdict: undefined,
+        finalVerdict: undefined,
+        nameAnswer: undefined,
+        explainText: undefined,
+        explainLoading: false,
+        currentRiwayatId: undefined,
+        lastOutcome: undefined,
+      });
 
-function recordRiwayat(
-  payload: string,
-  verdict: Verdict,
-  set: (fn: (s: ScanGuardState) => Partial<ScanGuardState>) => void,
-  get: () => ScanGuardState,
-) {
-  const parsed = parseQris(payload);
-  const entry: RiwayatEntry = {
-    id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    ts: Date.now(),
-    merchantName: parsed.tags["59"] ?? "(tidak diketahui)",
-    city: parsed.tags["60"] ?? "",
-    level: verdict.level,
-    score: verdict.score,
+      const verdict = evaluate(payload, buildContext(get()));
+
+      const nmid = nmidOf(tryParseQris(payload));
+      if (nmid) {
+        const now = Date.now();
+        set((s) => ({ recentScans: [...s.recentScans.filter((r) => r.ts >= now - 90_000), { nmid, ts: now }] }));
+      }
+      logFireRate(verdict.needsNameChallenge);
+
+      if (verdict.needsNameChallenge) {
+        set({ pass1Verdict: verdict, screen: "challenge" });
+        return;
+      }
+      finalize(payload, verdict);
+    },
+
+    submitNameAnswer: (name) => {
+      const payload = get().currentPayload;
+      if (!payload) return;
+      const verdict = evaluate(payload, buildContext(get(), { nameAnswer: name }));
+      finalize(payload, verdict, name);
+    },
+
+    // "Saya tidak tahu / tidak ada papan nama": re-evaluated by the engine with
+    // nameSkipped, which adds L3_NAME_SKIPPED and guarantees at least WARNING.
+    skipNameChallenge: () => {
+      const payload = get().currentPayload;
+      if (!payload) return;
+      const verdict = evaluate(payload, buildContext(get(), { nameSkipped: true }));
+      finalize(payload, verdict);
+    },
+
+    confirmPay: () => {
+      const state = get();
+      const payload = state.currentPayload;
+      if (!payload || !state.finalVerdict) return;
+      const parsed = tryParseQris(payload);
+      if (!parsed) return; // a code that cannot be parsed cannot be paid
+      const nmid = nmidOf(parsed);
+      const amountStr = parsed.tags["54"];
+      const amount = amountStr ? Number(amountStr) : 0;
+      const now = Date.now();
+
+      const history: PaidMerchant[] = [...state.history, { nmid, amount, ts: now }];
+      // A DANGER override (hold-to-confirm) is the buyer's call, but it must not
+      // teach place memory that this NMID is normal here — otherwise one
+      // overridden Zikri overlay starts diluting Anam's history at that spot.
+      let places = state.places;
+      if (state.currentCoords && state.finalVerdict.level !== "DANGER") {
+        places = upsertPlace(state.places, state.currentCoords, nmid, parsed.tags["59"] ?? "", now);
+      }
+      closeWith("dibayar", { history, places });
+    },
+
+    cancelPay: () => closeWith("dibatalkan"),
+
+    reportQr: () => {
+      const state = get();
+      if (!state.currentPayload) return;
+      const nmid = nmidOf(tryParseQris(state.currentPayload));
+      const reportedNmids = new Set(state.reportedNmids);
+      if (nmid) reportedNmids.add(nmid);
+      closeWith("dilaporkan", { reportedNmids });
+    },
+
+    resetToScan: () =>
+      set({ screen: "scan", currentPayload: undefined, finalVerdict: undefined, pass1Verdict: undefined }),
   };
-  set(() => ({ riwayat: [entry, ...get().riwayat] }));
-}
-
+});
