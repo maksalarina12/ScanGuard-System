@@ -1,0 +1,17 @@
+
+
+# <type>(<scope>): <imperative summary, max 72 chars, no period>
+#
+# <body: what changed and WHY, wrapped at ~72 chars, bullets ok>
+#
+# <footer: BREAKING CHANGE: ... | Refs #123 | Co-Authored-By: ...>
+#
+# Types : feat fix docs test refactor perf style build ci chore
+# Scopes: engine store ui scan data llm readme docs deps
+#
+# Example:
+#   fix(scan): stop camera once and read GPS per scan
+#
+# One concern per commit. Before committing, from scanguard-system/:
+#   npx tsc -b && npm test && npm run lint
+# See CONTRIBUTING.md for details. Lines starting with # are ignored.
