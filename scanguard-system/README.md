@@ -19,7 +19,7 @@ untuk kerangka lengkapnya.
 
 ```bash
 npm install
-npm run test    # 31 test, termasuk 2 test yang membuktikan engine ini benar
+npm run test    # 56 test, termasuk 2 test yang membuktikan engine ini benar
 npm run dev     # buka http://localhost:5173, klik tombol di bawah "Coba contoh"
 ```
 
@@ -30,8 +30,10 @@ Klik berurutan di layar Scan:
    berdampingan, jelas beda — nama merchant diubah tapi kode pengamannya
    tidak dihitung ulang.
 3. **BAD-03** → kode pengamannya **lolos** (CRC valid), tapi tetap tidak
-   pernah SAFE — lapisan identitas menangkapnya karena NMID-nya asing.
-   Ini test yang membuktikan "CRC valid" ≠ "aman".
+   pernah SAFE — lapisan identitas menangkapnya: NMID-nya asing dan nama
+   "WARUNG KOPI NUSA" dipakai ulang di NMID lain. Karena titiknya belum
+   dikenal, aplikasi menanyakan nama toko dulu; jawaban yang cocok pun
+   tetap berakhir **PERIKSA DULU**. Ini test yang membuktikan "CRC valid" ≠ "aman".
 4. **OVERLAY-01** — yang paling penting. Kode ini **sah 100%**, terdaftar
    resmi, CRC valid, tidak ada satupun yang dipalsukan. Aplikasi
    **menyembunyikan nama penerima** dan bertanya "Nama toko yang kamu
@@ -91,8 +93,9 @@ src/
   screens/         Scan, NameChallenge, Result, Bukti, Riwayat
   store.ts         Zustand — state di memori saja, tidak ada localStorage
 
-tests/             31 test: crc, parser, rules (8 fixture akseptansi),
-                   names, places (termasuk simulasi fire-rate)
+tests/             56 test: crc, parser, rules (8 fixture akseptansi +
+                   tiap rule), names, places (termasuk simulasi fire-rate),
+                   store (alur UI: kebocoran nama, crash, lokasi)
 fixtures/          fixtures.json — dihasilkan dari tools/qris_fixtures.py
 tools/             Generator fixture asli (Python)
 ```
@@ -138,11 +141,11 @@ menyalin layar — itu bukan verifikasi.
 
 | Layar | Isi |
 |---|---|
-| **Scan** | Kamera (html5-qrcode) dengan bingkai framing, tempel-dari-clipboard, dan 8 tombol "Coba contoh" — demo tidak pernah bergantung pada kamera yang berfungsi |
-| **Tantangan Nama** | Muncul di antara scan dan hasil kalau dipicu. Satu pertanyaan, nama penerima **tidak dirender di mana pun** di layar ini. Ada jalan keluar "Saya tidak tahu" yang tetap lanjut dengan peringatan |
+| **Scan** | Kamera (html5-qrcode) dengan bingkai framing, tempel-dari-clipboard, dan 8 tombol "Coba contoh" — demo tidak pernah bergantung pada kamera yang berfungsi. Scan lewat kamera/tempel membaca GPS sekali per scan (tanpa izin lokasi, titik dianggap belum dikenal dan nama toko ditanyakan) |
+| **Tantangan Nama** | Muncul di antara scan dan hasil kalau dipicu. Satu pertanyaan, nama penerima **tidak dirender di mana pun** selama pertanyaan belum dijawab — tab Bukti ikut dikunci. Ada jalan keluar "Saya tidak tahu" yang tetap lanjut dengan peringatan (`L3_NAME_SKIPPED`, minimal PERIKSA DULU, tidak pernah AMAN) |
 | **Hasil** | SAFE hijau langsung bisa bayar. WARNING kuning dengan **hitung mundur 7 detik** sebelum tombol bayar aktif — ini klaim produk yang sengaja, bukan aplikasi lambat. DANGER merah: tombol bayar diganti "Batalkan" / "Laporkan QR ini", plus tombol override yang **wajib ditahan 3 detik** (sistem yang tidak bisa di-override akan ditinggalkan penggunanya). Expander "Kenapa?" merinci tiap rule yang aktif dalam Bahasa Indonesia awam |
-| **Bukti** | Tabel TLV tag demi tag, CRC tertulis vs CRC hitung ulang berdampingan, daftar pass/fail semua 19 rule, dan riwayat titik lokasi ini (kalau ada) — layar yang membuktikan sistem benar-benar membaca kodenya, bukan menyuruh percaya |
-| **Riwayat** | Transaksi yang sudah diperiksa sesi ini. Di memori saja, hilang saat refresh |
+| **Bukti** | Tabel TLV tag demi tag, CRC tertulis vs CRC hitung ulang berdampingan, daftar pass/fail semua 20 rule (rule yang tidak dijalankan ditandai, bukan dianggap aman), dan riwayat titik lokasi ini (kalau ada) — layar yang membuktikan sistem benar-benar membaca kodenya, bukan menyuruh percaya |
+| **Riwayat** | Transaksi yang sudah diperiksa sesi ini beserta hasil akhirnya (dibayar / dibatalkan / dilaporkan). Di memori saja, hilang saat refresh |
 
 ---
 
@@ -193,7 +196,7 @@ pernah bergantung pada kamera yang berfungsi.
 npm run test
 ```
 
-31 test di `tests/`, di antaranya:
+56 test di `tests/`, di antaranya:
 
 - `crc.test.ts` — round-trip CRC pada 3 fixture sehat + **property test**:
   mengubah satu karakter apa pun (selain field CRC) pada fixture sehat
@@ -211,7 +214,11 @@ npm run test
   persis, 5 baris tabel di dokumen desain.
 - `places.test.ts` — place memory (Haversine, upsert, dominan NMID) dan
   **simulasi fire-rate**: 100 pembayaran di 8 titik yang sudah dikenal,
-  tantangan nama harus muncul **kurang dari 10 kali**.
+  tantangan nama harus muncul **kurang dari 10 kali**. Saat `npm run dev`,
+  fire-rate sesi berjalan juga dicetak di console browser.
+- `store.test.ts` — alur aplikasi: nama penerima tidak bisa diintip lewat
+  Bukti selama tantangan, BAD-02 tidak membuat crash, lokasi tidak
+  terbawa dari scan sebelumnya, override DANGER tidak mengotori place memory.
 
 ### Cek tipe & build produksi
 
@@ -253,6 +260,11 @@ sisi pengguna. Untuk mengaktifkan:
 ```bash
 echo "VITE_ANTHROPIC_API_KEY=sk-ant-..." > .env.local
 ```
+
+**Hanya untuk lokal.** Variabel `VITE_*` ikut masuk ke bundle JavaScript,
+jadi siapa pun yang membuka situsnya bisa membaca key tersebut. Jangan
+set variabel ini di deploy publik (Vercel); di sana aplikasi berjalan
+dengan teks bawaan.
 
 ---
 
