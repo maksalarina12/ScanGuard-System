@@ -94,3 +94,49 @@ export function parseQris(raw: string): ParsedQris {
     crcValid: raw.slice(-8, -4) === "6304" && crcClaimed === crcComputed,
   };
 }
+
+export const MERCHANT_CITY_MAX = 15; // EMVCo tag 60 limit
+
+export interface MerchantLocation {
+  city: string;
+  /** Tag 60 filled to the 15-char limit — often a street address that was
+   * cut off when the QR was generated. The rest is not in the payload. */
+  cityMayBeTruncated: boolean;
+  postalCode?: string;
+  /** Tag 64 sub-tag 02: merchant city in an alternate language, if present. */
+  cityAlt?: string;
+  /** Tag 62 sub-tag 03: store label, if present. */
+  storeLabel?: string;
+}
+
+/** Everything the payload says about where the merchant is. QRIS carries no
+ * street address field; this is the complete set. */
+export function merchantLocation(parsed: ParsedQris): MerchantLocation {
+  const city = (parsed.tags["60"] ?? "").trim();
+  const sub = (tag: string) => {
+    if (!parsed.tags[tag]) return {};
+    try {
+      return parseTlvMap(parsed.tags[tag]);
+    } catch {
+      return {};
+    }
+  };
+  return {
+    city,
+    cityMayBeTruncated: (parsed.tags["60"] ?? "").length >= MERCHANT_CITY_MAX,
+    postalCode: parsed.tags["61"]?.trim() || undefined,
+    cityAlt: sub("64")["02"]?.trim() || undefined,
+    storeLabel: sub("62")["03"]?.trim() || undefined,
+  };
+}
+
+/** Like parseQris, but returns null for payloads that fail the TLV walk
+ * (e.g. BAD-02). For UI/store code that must render even a broken code. */
+export function tryParseQris(raw: string): ParsedQris | null {
+  try {
+    return parseQris(raw);
+  } catch (e) {
+    if (e instanceof TlvParseError) return null;
+    throw e;
+  }
+}

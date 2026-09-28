@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseTlv, parseQris, TlvParseError } from "../src/engine/parser";
+import { parseTlv, parseQris, TlvParseError, merchantLocation } from "../src/engine/parser";
 import fixtures from "../fixtures/fixtures.json";
 
 describe("parseTlv", () => {
@@ -38,5 +38,25 @@ describe("parseQris", () => {
     const parsed = parseQris(bad03.payload);
     expect(parsed.crcValid).toBe(true);
     expect(parsed.merchantAccount?.nmid).toBe("936000999887766554");
+  });
+});
+
+describe("merchantLocation", () => {
+  const tlv = (t: string, v: string) => `${t}${String(v.length).padStart(2, "0")}${v}`;
+  const withTags = (extra: string) => parseQris(tlv("00", "01") + extra + "6304" + "0000");
+
+  it("flags a city filled to the 15-char limit as possibly truncated", () => {
+    const loc = merchantLocation(withTags(tlv("60", "Jl. Medan Merde") + tlv("61", "20112")));
+    expect(loc.city).toBe("Jl. Medan Merde");
+    expect(loc.cityMayBeTruncated).toBe(true);
+    expect(loc.postalCode).toBe("20112");
+  });
+
+  it("does not flag a normal city name, and reads tag 64 / 62 extras", () => {
+    const extra = tlv("60", "BANDUNG") + tlv("62", tlv("03", "Cabang Dago")) + tlv("64", tlv("00", "ID") + tlv("02", "Kota Bandung"));
+    const loc = merchantLocation(withTags(extra));
+    expect(loc.cityMayBeTruncated).toBe(false);
+    expect(loc.storeLabel).toBe("Cabang Dago");
+    expect(loc.cityAlt).toBe("Kota Bandung");
   });
 });
