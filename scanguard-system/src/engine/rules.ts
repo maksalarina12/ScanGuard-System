@@ -141,8 +141,10 @@ export function evalLayer2(raw: string, ctx: Context): RuleHit[] {
   const normalizedScanned = normalizeName(name);
   for (const [knownNmid, info] of Object.entries(KNOWN)) {
     if (knownNmid === nmid) continue; // exact same registered merchant, not a lookalike
+    // Distance 0 counts too: a known merchant's exact name on a different
+    // NMID is name reuse (BAD-03) — the strongest form of impersonation.
     const dist = levenshtein(normalizedScanned, normalizeName(info.name));
-    if (dist >= 1 && dist <= 2) {
+    if (dist <= 2) {
       hits.push({
         ruleId: "L2_LOOKALIKE_NAME",
         layer: 2,
@@ -311,8 +313,23 @@ export function shouldTriggerNameChallenge(raw: string, ctx: Context, hitsSoFar:
   return noPlaceMemory || nmidUnknownFired || placeSwitchFired || amountOverThreshold;
 }
 
-/** Layer 3 name-challenge rules — pass 2 only, once ctx.nameAnswer is set. */
+/** Layer 3 name-challenge rules — pass 2 only, once ctx.nameAnswer is set
+ * or the buyer explicitly skipped the question. */
 export function evalNameChallenge(raw: string, ctx: Context): RuleHit[] {
+  if (ctx.nameSkipped) {
+    // Weight 30 = the WARNING threshold on its own: opting out of the one
+    // check that catches Type C must never end in a silent SAFE.
+    return [
+      {
+        ruleId: "L3_NAME_SKIPPED",
+        layer: 3,
+        severity: "warning",
+        weight: 30,
+        reasonId: "L3_NAME_SKIPPED",
+        evidence: { skipped: true },
+      },
+    ];
+  }
   if (ctx.nameAnswer === undefined) return [];
   const parsed = parseQris(raw);
   const qrName = parsed.tags["59"] ?? "";

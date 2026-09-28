@@ -1,5 +1,5 @@
 import { useShallow } from "zustand/react/shallow";
-import { useScanGuard } from "./store";
+import { useScanGuard, isChallengePending } from "./store";
 import ScanScreen from "./screens/Scan";
 import NameChallengeScreen from "./screens/NameChallenge";
 import ResultScreen from "./screens/Result";
@@ -8,13 +8,15 @@ import RiwayatScreen from "./screens/Riwayat";
 
 function ScreenSwitch() {
   const screen = useScanGuard((s) => s.screen);
+  const verdictId = useScanGuard((s) => s.currentRiwayatId);
   switch (screen) {
     case "scan":
       return <ScanScreen />;
     case "challenge":
       return <NameChallengeScreen />;
     case "result":
-      return <ResultScreen />;
+      // Keyed per verdict so the WARNING countdown and hold state start fresh.
+      return <ResultScreen key={verdictId} />;
     case "bukti":
       return <BuktiScreen />;
     case "riwayat":
@@ -23,17 +25,18 @@ function ScreenSwitch() {
 }
 
 function BottomNav() {
-  const { screen, goTo, currentPayload } = useScanGuard(
+  const { screen, goTo, currentPayload, challengePending } = useScanGuard(
     useShallow((s) => ({
       screen: s.screen,
       goTo: s.goTo,
       currentPayload: s.currentPayload,
+      challengePending: isChallengePending(s),
     })),
   );
 
   const items: { id: "scan" | "bukti" | "riwayat"; label: string; icon: string; disabled?: boolean }[] = [
     { id: "scan", label: "Scan", icon: "▢" },
-    { id: "bukti", label: "Bukti", icon: "≡", disabled: !currentPayload },
+    { id: "bukti", label: "Bukti", icon: "≡", disabled: !currentPayload || challengePending },
     { id: "riwayat", label: "Riwayat", icon: "◷" },
   ];
 
@@ -58,8 +61,8 @@ function BottomNav() {
 
 export default function App() {
   return (
-    <div className="min-h-dvh w-full flex items-center justify-center bg-[#05070a] py-4">
-      <div className="w-[390px] h-[844px] max-h-dvh flex flex-col bg-[#0a0e14] text-white rounded-[28px] overflow-hidden shadow-2xl shadow-black/60 ring-1 ring-white/10">
+    <div className="min-h-dvh w-full flex items-center justify-center bg-[#05070a] sm:py-4">
+      <div className="w-full max-w-[390px] h-dvh sm:h-[844px] sm:max-h-dvh flex flex-col bg-[#0a0e14] text-white sm:rounded-[28px] overflow-hidden shadow-2xl shadow-black/60 sm:ring-1 ring-white/10">
         <div className="flex-1 overflow-y-auto">
           <ScreenSwitch />
         </div>

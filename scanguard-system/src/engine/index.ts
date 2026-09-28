@@ -28,7 +28,7 @@ export function evaluate(raw: string, ctx: Context): Verdict {
   const preChallengeHits = [...layer2Hits, ...layer3Hits, ...layer4Hits];
 
   const needsNameChallenge =
-    ctx.nameAnswer === undefined && shouldTriggerNameChallenge(raw, ctx, preChallengeHits);
+    ctx.nameAnswer === undefined && !ctx.nameSkipped && shouldTriggerNameChallenge(raw, ctx, preChallengeHits);
   if (needsNameChallenge) {
     return buildVerdict(preChallengeHits, true);
   }

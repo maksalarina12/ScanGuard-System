@@ -1,6 +1,6 @@
 import { useShallow } from "zustand/react/shallow";
-import { useScanGuard } from "../store";
-import { parseQris } from "../engine/parser";
+import { useScanGuard, isChallengePending } from "../store";
+import { tryParseQris } from "../engine/parser";
 import { findNearestPlace, dominantNmid } from "../engine/places";
 
 const TAG_LABELS: Record<string, string> = {
@@ -14,18 +14,21 @@ const TAG_LABELS: Record<string, string> = {
   "55": "Tip indicator",
   "58": "Country",
   "59": "Merchant name",
-  "60": "Merchant city",
+  "60": "Merchant city (maks 15 karakter)",
   "61": "Postal code",
   "62": "Additional data",
+  "64": "Merchant info (bahasa alternatif)",
   "63": "CRC",
 };
+
+const NAME_RULE_IDS = new Set(["L3_NAME_MISMATCH", "L3_NAME_INCONCLUSIVE", "L3_NAME_SKIPPED"]);
 
 const ALL_RULE_IDS = [
   "L1_MALFORMED", "L1_CRC_MISMATCH", "L1_BAD_FORMAT", "L1_WRONG_COUNTRY",
   "L1_WRONG_CURRENCY", "L1_NO_MERCHANT_ACCT",
   "L2_NMID_REPORTED", "L2_NMID_MALFORMED", "L2_NMID_UNKNOWN", "L2_LOOKALIKE_NAME",
   "L3_PLACE_NMID_SWITCH", "L3_GEO_CITY_MISMATCH", "L3_MCC_AMOUNT_ANOMALY",
-  "L3_SUSPICIOUS_TIP", "L3_NAME_MISMATCH", "L3_NAME_INCONCLUSIVE",
+  "L3_SUSPICIOUS_TIP", "L3_NAME_MISMATCH", "L3_NAME_INCONCLUSIVE", "L3_NAME_SKIPPED",
   "L4_FIRST_TIME_PAYEE", "L4_AMOUNT_OUTLIER", "L4_RAPID_REPEAT",
 ];
 
@@ -43,16 +46,30 @@ export default function BuktiScreen() {
   if (!currentPayload) {
     return <div className="p-5 text-white/40 text-sm">Belum ada kode yang dipindai.</div>;
   }
-
-  let parsed;
-  try {
-    parsed = parseQris(currentPayload);
-  } catch {
-    parsed = null;
+  // The TLV table below includes tag 59 (payee name). Showing it before the
+  // buyer answers would turn the name challenge into transcription.
+  if (isChallengePending({ pass1Verdict, finalVerdict })) {
+    return (
+      <div className="p-5 text-white/40 text-sm">
+        Jawab dulu pertanyaan nama toko. Bukti teknis baru bisa dilihat setelahnya.
+      </div>
+    );
   }
 
-  const hits = finalVerdict?.hits ?? pass1Verdict?.hits ?? [];
+  const parsed = tryParseQris(currentPayload);
+
+  const hits = finalVerdict?.hits ?? [];
   const firedIds = new Set(hits.map((h) => h.ruleId));
+  // Layer 1 failures stop evaluation, and the name rules only run when the
+  // challenge was asked — anything not evaluated must not read as "aman".
+  const layer1Failed = hits.some((h) => h.layer === 1);
+  const challengeAsked = Boolean(pass1Verdict);
+  function ruleStatus(id: string): "fired" | "pass" | "skipped" {
+    if (firedIds.has(id)) return "fired";
+    if (layer1Failed && !id.startsWith("L1_")) return "skipped";
+    if (!challengeAsked && NAME_RULE_IDS.has(id)) return "skipped";
+    return "pass";
+  }
   const place = currentCoords ? findNearestPlace(places, currentCoords) : undefined;
   const dom = place ? dominantNmid(place) : undefined;
 
@@ -105,11 +122,13 @@ export default function BuktiScreen() {
         </p>
         <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 divide-y divide-white/5">
           {ALL_RULE_IDS.map((id) => {
-            const fired = firedIds.has(id);
+            const status = ruleStatus(id);
             return (
               <div key={id} className="flex items-center justify-between px-3.5 py-2 text-xs">
                 <span className="font-mono text-white/60">{id}</span>
-                <span className={fired ? "text-danger" : "text-safe"}>{fired ? "AKTIF" : "aman"}</span>
+                <span className={status === "fired" ? "text-danger" : status === "pass" ? "text-safe" : "text-white/30"}>
+                  {status === "fired" ? "AKTIF" : status === "pass" ? "aman" : "tidak dijalankan"}
+                </span>
               </div>
             );
           })}

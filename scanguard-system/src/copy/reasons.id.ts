@@ -21,7 +21,7 @@ export const REASONS_ID: Record<string, string> = {
   L2_NMID_UNKNOWN:
     "Ini pertama kalinya kamu bertemu merchant ini. Belum ada riwayat yang bisa dicocokkan.",
   L2_LOOKALIKE_NAME:
-    "Nama merchant ini mirip sekali dengan merchant lain yang sudah dikenal — bisa jadi typo yang disengaja.",
+    "Nama merchant ini sama atau mirip sekali dengan merchant lain yang sudah dikenal, tapi nomor merchant-nya berbeda — bisa jadi peniruan yang disengaja.",
 
   L3_PLACE_NMID_SWITCH:
     "Di titik lokasi ini, biasanya kamu membayar merchant lain. Merchant pada kode ini berbeda dari kebiasaan di sini.",
@@ -35,6 +35,8 @@ export const REASONS_ID: Record<string, string> = {
     "Nama toko yang kamu ketik tidak cocok dengan nama penerima pada kode QR ini.",
   L3_NAME_INCONCLUSIVE:
     "Nama yang kamu ketik terlalu umum untuk dicocokkan dengan pasti.",
+  L3_NAME_SKIPPED:
+    "Kamu memilih tidak menjawab nama toko. Kami tidak bisa memastikan ini toko yang kamu maksud.",
 
   L4_FIRST_TIME_PAYEE:
     "Kamu belum pernah membayar merchant ini sebelumnya.",

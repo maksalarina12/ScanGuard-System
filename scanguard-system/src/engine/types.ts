@@ -23,6 +23,7 @@ export interface Context {
   history: PaidMerchant[];
   reportedNmids: Set<string>;
   nameAnswer?: string;
+  nameSkipped?: boolean; // buyer chose "Saya tidak tahu" instead of answering
   now?: number; // injectable for tests; defaults to Date.now()
   recentNmids?: { nmid: string; ts: number }[]; // for L4_RAPID_REPEAT
 }
