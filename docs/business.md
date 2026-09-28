@@ -3,7 +3,7 @@
 **ScanGuard System · HackNusa 2026 · Track 1: Secure Digital Payments & Fintech**
 Submisi awal: **21 Agustus 2026** · Hackathon onsite: 3 Oktober 2026
 
-> Baca `01_DEFINISI_MASALAH.md` dulu. Dokumen ini menurunkan dari sana.
+> Baca `problem-definition.md` dulu. Dokumen ini menurunkan dari sana.
 > **Berubah dari v1:** posisi produk digeser dari aplikasi ke SDK, narasi
 > disusun ulang mengikuti tiga tipe serangan, naskah video dirombak.
 
