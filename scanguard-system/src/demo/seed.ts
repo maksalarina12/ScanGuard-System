@@ -45,6 +45,16 @@ export const DEMO_COORDS_BY_FIXTURE: Record<string, Coords | undefined> = {
   "OVERLAY-01": DEMO_LOCATIONS.SPOT_A, // Zikri's QR taped over Anam's sticker
 };
 
+/** What the demo app actually does first for fixtures whose fixtures.json
+ * `expected` describes the engine verdict in a blank context. With the
+ * seeded place memory these two land on an unknown spot / a known spot with
+ * a different NMID, so the buyer is asked the shop name before any verdict
+ * (both still end at WARNING or worse — never SAFE). */
+export const DEMO_BADGE_OVERRIDE: Record<string, string> = {
+  "BAD-03": "CHALLENGE",
+  "BAD-04": "CHALLENGE",
+};
+
 /** Builds the app's starting place memory: a few "regular spots" the demo
  * buyer has visited before, so the OK fixtures resolve straight to SAFE and
  * only OVERLAY-01 (a place/NMID switch at a well-known spot) has to ask. */
