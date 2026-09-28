@@ -19,26 +19,19 @@ produk, dan implementasi acuannya yang benar-benar jalan.
 
 ```
 .
-├── 01_DEFINISI_MASALAH.md   <- BACA INI DULUAN. Masalah, target pengguna,
-│                               tiga tipe serangan, batasan yang disengaja.
-├── 02_MEGA_PROMPT.md        <- Spesifikasi teknis lengkap yang dipakai
-│                               untuk membangun aplikasinya (arsitektur,
-│                               format QRIS, rumus CRC, semua aturan
-│                               deteksi, urutan pengerjaan).
-├── 03_BUSINESS_BIBLE.md     <- Pitch, model bisnis, peta ke kriteria
-│                               penilaian juri, naskah video, bank
-│                               pertanyaan juri.
-├── qris_fixtures.py         <- Generator data uji asli (Python) — dipakai
-│                               sebagai acuan; salinannya ada di
-│                               scanguard-system/tools/.
-└── scanguard-system/              <- APLIKASINYA. React + TypeScript + Vite.
+├── docs/
+│   ├── problem-definition.md  <- BACA INI DULUAN. Masalah, target pengguna,
+│   │                             tiga tipe serangan, batasan yang disengaja.
+│   └── business.md            <- Pitch, model bisnis, peta ke kriteria
+│                                 penilaian juri.
+└── scanguard-system/          <- APLIKASINYA. React + TypeScript + Vite.
                                 Lihat scanguard-system/README.md untuk cara
                                 menjalankan dan menguji.
 ```
 
-**Urutan baca yang disarankan:** `01_DEFINISI_MASALAH.md` →
-`02_MEGA_PROMPT.md` → `03_BUSINESS_BIBLE.md` → `scanguard-system/README.md`.
-Dokumen kedua dan ketiga menurunkan keputusannya dari dokumen pertama,
+**Urutan baca yang disarankan:** `docs/problem-definition.md` →
+`docs/business.md` → `scanguard-system/README.md`.
+Dokumen berikutnya menurunkan keputusannya dari dokumen pertama,
 bukan sebaliknya.
 
 ---
@@ -60,7 +53,7 @@ menutup celah ini.
 
 Tipe C — kasus Anam & Zikri, dua warung sebelahan yang tertukar pembayaran
 lewat QR yang sama-sama sah — adalah kartu as proyek ini. Detailnya ada di
-`01_DEFINISI_MASALAH.md` bagian 4.
+`docs/problem-definition.md` bagian 4.
 
 ## Bentuk produk: SDK, bukan aplikasi
 

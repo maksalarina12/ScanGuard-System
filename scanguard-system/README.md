@@ -10,7 +10,7 @@ tempat, dan untuk transaksi berisiko, menanyakan nama toko ke pembeli
 
 Ini bukan aplikasi pembayaran. Ini implementasi acuan dari sebuah SDK
 verifikasi yang seharusnya dipasang di dalam dompet digital yang sudah
-dipakai orang — lihat [`01_DEFINISI_MASALAH.md`](../01_DEFINISI_MASALAH.md)
+dipakai orang — lihat [`docs/problem-definition.md`](../docs/problem-definition.md)
 untuk kerangka lengkapnya.
 
 ---
@@ -278,8 +278,7 @@ dengan teks bawaan.
 | AI sebagai pengambil keputusan | Keputusan keamanan harus bisa dijelaskan dan diulang — AI cuma menerjemahkan |
 | Sidik lokasi Wi-Fi | Lebih presisi dari GPS tapi butuh aplikasi Android asli — masuk peta jalan, bukan PoC ini |
 
-Detail lengkap kerangka masalah, model bisnis, dan naskah pitching ada
-di tiga dokumen di direktori induk repo ini:
-[`01_DEFINISI_MASALAH.md`](../01_DEFINISI_MASALAH.md),
-[`02_MEGA_PROMPT.md`](../02_MEGA_PROMPT.md),
-[`03_BUSINESS_BIBLE.md`](../03_BUSINESS_BIBLE.md).
+Detail lengkap kerangka masalah, dan model bisnis ada
+di folder `docs/` repo ini:
+[`problem-definition.md`](../docs/problem-definition.md) dan
+[`business.md`](../docs/business.md).
